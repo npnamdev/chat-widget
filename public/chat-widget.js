@@ -33,12 +33,20 @@
 
   if (btn) {
     btn.addEventListener('click', () => {
-      box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-      box.style.display = 'flex';
+      if (box.style.display === 'flex') {
+        box.style.display = 'none';
+      } else {
+        box.style.display = 'flex';
+      }
     });
   }
 
-  const socket = io();
+  const socket = io({
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 5
+  });
 
   let visitorId = localStorage.getItem('visitorId');
   if (!visitorId) {
@@ -82,6 +90,14 @@
   });
   socket.on('message_from_admin', ({ visitorId: id, message }) => {
     if (id === visitorId && message) renderMessage(message);
+  });
+
+  socket.on('connect', () => {
+    console.log('Connected to server');
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('Connection error:', error);
   });
 
   socket.on('error', (error) => {
