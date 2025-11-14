@@ -31,16 +31,18 @@
   `;
   document.body.appendChild(box);
 
-  btn.addEventListener('click', () => {
-    box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-    box.style.display = 'flex';
-  });
+  if (btn) {
+    btn.addEventListener('click', () => {
+      box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+      box.style.display = 'flex';
+    });
+  }
 
-  const socket = io(); // Socket.IO client
+  const socket = io();
 
   let visitorId = localStorage.getItem('visitorId');
   if (!visitorId) {
-    visitorId = 'visitor-' + Math.random().toString(36).substr(2,9);
+    visitorId = 'visitor-' + Math.random().toString(36).substr(2, 9);
     localStorage.setItem('visitorId', visitorId);
   }
 
@@ -48,12 +50,20 @@
   const input = document.getElementById('chat-text');
   const sendBtn = document.getElementById('chat-send');
 
+  if (!messagesDiv || !input || !sendBtn) {
+    console.error('Chat elements not found');
+    return;
+  }
+
   function renderMessage(m) {
+    if (!m || !m.text) return;
     const div = document.createElement('div');
     div.className = 'chat-message ' + (m.sender === 'user' ? 'user' : 'agent');
     div.textContent = m.text;
-    messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    if (messagesDiv) {
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
   }
 
   sendBtn.addEventListener('click', () => {
@@ -67,8 +77,14 @@
     if (e.key === 'Enter') sendBtn.click();
   });
 
-  socket.on('message_received', msg => renderMessage(msg));
+  socket.on('message_received', msg => {
+    if (msg) renderMessage(msg);
+  });
   socket.on('message_from_admin', ({ visitorId: id, message }) => {
-    if (id === visitorId) renderMessage(message);
+    if (id === visitorId && message) renderMessage(message);
+  });
+
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
   });
 })();

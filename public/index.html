@@ -8,11 +8,11 @@
 <body>
 <h1>Trang web demo chat widget</h1>
 
-<!-- Load Socket.IO -->
+<!-- Load Socket.IO first -->
 <script src="/socket.io/socket.io.js"></script>
 
-<!-- Load chat widget -->
-<script src="chat-widget.js" defer></script>
+<!-- Load chat widget with defer to ensure DOM is ready -->
+<script src="chat-widget.js"></script>
 
 </body>
 </html>

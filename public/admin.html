@@ -36,75 +36,93 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io();
+document.addEventListener('DOMContentLoaded', () => {
+  const socket = io();
 
-// Join admin room
-socket.emit('join_admin');
+  // Join admin room
+  socket.emit('join_admin');
 
-let currentVisitor = null;
-const visitorsDiv = document.getElementById('visitors');
-const chatMessages = document.getElementById('chat-messages');
-const input = document.getElementById('admin-text');
-const sendBtn = document.getElementById('admin-send');
+  let currentVisitor = null;
+  const visitorsDiv = document.getElementById('visitors');
+  const chatMessages = document.getElementById('chat-messages');
+  const input = document.getElementById('admin-text');
+  const sendBtn = document.getElementById('admin-send');
 
-let chatHistory = {}; // { visitorId: [messages] }
+  let chatHistory = {}; // { visitorId: [messages] }
 
-function renderVisitors() {
-  visitorsDiv.innerHTML = '<h3 style="padding:10px; margin:0; border-bottom:1px solid #ccc;">Visitors</h3>';
-  Object.keys(chatHistory).forEach(visitorId => {
-    const div = document.createElement('div');
-    div.className = 'visitor' + (visitorId === currentVisitor ? ' active' : '');
-    div.textContent = visitorId;
-    div.onclick = () => { currentVisitor = visitorId; renderMessages(); renderVisitors(); };
-    visitorsDiv.appendChild(div);
+  function renderVisitors() {
+    visitorsDiv.innerHTML = '<h3 style="padding:10px; margin:0; border-bottom:1px solid #ccc;">Visitors</h3>';
+    Object.keys(chatHistory).forEach(visitorId => {
+      const div = document.createElement('div');
+      div.className = 'visitor' + (visitorId === currentVisitor ? ' active' : '');
+      div.textContent = visitorId;
+      div.onclick = () => { 
+        currentVisitor = visitorId; 
+        renderMessages(); 
+        renderVisitors(); 
+      };
+      visitorsDiv.appendChild(div);
+    });
+  }
+
+  function renderMessages() {
+    chatMessages.innerHTML = '';
+    if (!currentVisitor || !chatHistory[currentVisitor]) return;
+    chatHistory[currentVisitor].forEach(m => {
+      if (m) {
+        const div = document.createElement('div');
+        div.className = 'chat-message ' + (m.sender === 'user' ? 'user' : 'admin');
+        div.textContent = m.text || '';
+        chatMessages.appendChild(div);
+      }
+    });
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  // Nhận tất cả chat khi join
+  socket.on('all_chats', all => {
+    if (all) {
+      chatHistory = all;
+      renderVisitors();
+    }
   });
-}
 
-function renderMessages() {
-  chatMessages.innerHTML = '';
-  if (!currentVisitor || !chatHistory[currentVisitor]) return;
-  chatHistory[currentVisitor].forEach(m => {
-    const div = document.createElement('div');
-    div.className = 'chat-message ' + (m.sender === 'user' ? 'user' : 'admin');
-    div.textContent = m.text;
-    chatMessages.appendChild(div);
+  // Nhận tin nhắn mới từ visitor
+  socket.on('new_message', ({ visitorId, message }) => {
+    if (!chatHistory[visitorId]) chatHistory[visitorId] = [];
+    if (message) {
+      chatHistory[visitorId].push(message);
+    }
+    if (!currentVisitor) currentVisitor = visitorId;
+    renderVisitors();
+    renderMessages();
   });
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
 
-// Nhận tất cả chat khi join
-socket.on('all_chats', all => {
-  chatHistory = all;
-  renderVisitors();
-});
+  // Nhận tin nhắn từ admin (xác nhận gửi)
+  socket.on('message_sent', ({ visitorId, message }) => {
+    if (!chatHistory[visitorId]) chatHistory[visitorId] = [];
+    if (message) {
+      chatHistory[visitorId].push(message);
+    }
+    renderMessages();
+  });
 
-// Nhận tin nhắn mới từ visitor
-socket.on('new_message', ({ visitorId, message }) => {
-  if (!chatHistory[visitorId]) chatHistory[visitorId] = [];
-  chatHistory[visitorId].push(message);
-  if (!currentVisitor) currentVisitor = visitorId;
-  renderVisitors();
-  renderMessages();
-});
+  // Gửi tin nhắn
+  sendBtn.addEventListener('click', () => {
+    if (!currentVisitor) return;
+    const text = input.value.trim();
+    if (!text) return;
+    socket.emit('send_admin_message', { visitorId: currentVisitor, text });
+    input.value = '';
+  });
 
-// Nhận tin nhắn từ admin (xác nhận gửi)
-socket.on('message_sent', ({ visitorId, message }) => {
-  if (!chatHistory[visitorId]) chatHistory[visitorId] = [];
-  chatHistory[visitorId].push(message);
-  renderMessages();
-});
+  input.addEventListener('keypress', e => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
 
-// Gửi tin nhắn
-sendBtn.addEventListener('click', () => {
-  if (!currentVisitor) return;
-  const text = input.value.trim();
-  if (!text) return;
-  socket.emit('send_admin_message', { visitorId: currentVisitor, text });
-  input.value = '';
-});
-
-input.addEventListener('keypress', e => {
-  if (e.key === 'Enter') sendBtn.click();
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
 });
 </script>
 </body>
