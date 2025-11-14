@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Chat Panel</title>
+<style>
+  body { font-family: Arial, sans-serif; margin:0; padding:0; display:flex; height:100vh; }
+  #visitors { width:200px; border-right:1px solid #ccc; overflow-y:auto; }
+  #chat { flex:1; display:flex; flex-direction:column; }
+  #chat-messages { flex:1; padding:12px; overflow-y:auto; background:#f5f5f5; }
+  #chat-input { display:flex; border-top:1px solid #ddd; }
+  #chat-input input { flex:1; padding:10px; border:none; outline:none; font-size:14px; }
+  #chat-input button { padding:10px 16px; border:none; background:#4facfe; color:white; cursor:pointer; }
+  #chat-input button:hover { background:#00f2fe; }
+  .visitor { padding:10px; cursor:pointer; border-bottom:1px solid #eee; }
+  .visitor.active { background:#d0f0ff; }
+  .chat-message { margin-bottom:8px; padding:6px 10px; border-radius:10px; max-width:80%; word-wrap:break-word; font-size:14px; line-height:1.4; }
+  .chat-message.user { background:#4facfe; color:#fff; align-self:flex-start; }
+  .chat-message.admin { background:#e0e0e0; color:#333; align-self:flex-end; }
+</style>
+</head>
+<body>
+
+<div id="visitors">
+  <h3 style="padding:10px; margin:0; border-bottom:1px solid #ccc;">Visitors</h3>
+</div>
+
+<div id="chat">
+  <div id="chat-messages"></div>
+  <div id="chat-input">
+    <input type="text" id="admin-text" placeholder="Type a message..." />
+    <button id="admin-send">Send</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+// Join admin room
+socket.emit('join_admin');
+
+let currentVisitor = null;
+const visitorsDiv = document.getElementById('visitors');
+const chatMessages = document.getElementById('chat-messages');
+const input = document.getElementById('admin-text');
+const sendBtn = document.getElementById('admin-send');
+
+let chatHistory = {}; // { visitorId: [messages] }
+
+function renderVisitors() {
+  visitorsDiv.innerHTML = '<h3 style="padding:10px; margin:0; border-bottom:1px solid #ccc;">Visitors</h3>';
+  Object.keys(chatHistory).forEach(visitorId => {
+    const div = document.createElement('div');
+    div.className = 'visitor' + (visitorId === currentVisitor ? ' active' : '');
+    div.textContent = visitorId;
+    div.onclick = () => { currentVisitor = visitorId; renderMessages(); renderVisitors(); };
+    visitorsDiv.appendChild(div);
+  });
+}
+
+function renderMessages() {
+  chatMessages.innerHTML = '';
+  if (!currentVisitor || !chatHistory[currentVisitor]) return;
+  chatHistory[currentVisitor].forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'chat-message ' + (m.sender === 'user' ? 'user' : 'admin');
+    div.textContent = m.text;
+    chatMessages.appendChild(div);
+  });
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Nhận tất cả chat khi join
+socket.on('all_chats', all => {
+  chatHistory = all;
+  renderVisitors();
+});
+
+// Nhận tin nhắn mới từ visitor
+socket.on('new_message', ({ visitorId, message }) => {
+  if (!chatHistory[visitorId]) chatHistory[visitorId] = [];
+  chatHistory[visitorId].push(message);
+  if (!currentVisitor) currentVisitor = visitorId;
+  renderVisitors();
+  renderMessages();
+});
+
+// Nhận tin nhắn từ admin (xác nhận gửi)
+socket.on('message_sent', ({ visitorId, message }) => {
+  if (!chatHistory[visitorId]) chatHistory[visitorId] = [];
+  chatHistory[visitorId].push(message);
+  renderMessages();
+});
+
+// Gửi tin nhắn
+sendBtn.addEventListener('click', () => {
+  if (!currentVisitor) return;
+  const text = input.value.trim();
+  if (!text) return;
+  socket.emit('send_admin_message', { visitorId: currentVisitor, text });
+  input.value = '';
+});
+
+input.addEventListener('keypress', e => {
+  if (e.key === 'Enter') sendBtn.click();
+});
+</script>
+</body>
+</html>
