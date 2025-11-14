@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Example: Chat Widget Embedded</title>
+<style>
+  body { 
+    font-family: Arial, sans-serif; 
+    margin: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  .content {
+    max-width: 800px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.1);
+    padding: 30px;
+    border-radius: 10px;
+  }
+  h1 { font-size: 2.5em; margin-bottom: 20px; }
+  p { font-size: 1.2em; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="content">
+  <h1>🎉 Trang Web Demo</h1>
+  <p>Đây là trang web mẫu để test chat widget khi nhúng vào trang khác.</p>
+  <p>Widget chat sẽ xuất hiện ở góc dưới bên phải. Click vào icon 💬 để mở chat!</p>
+  <p>Tin nhắn sẽ hiển thị ngay lập tức khi bạn gửi.</p>
+  
+  <h2>📝 Hướng dẫn nhúng widget vào trang của bạn:</h2>
+  <pre style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; overflow-x: auto;">
+&lt;!-- Nhúng vào trước thẻ &lt;/body&gt; --&gt;
+&lt;script src="http://localhost:3000/socket.io/socket.io.js"&gt;&lt;/script&gt;
+&lt;script src="http://localhost:3000/chat-widget.js"&gt;&lt;/script&gt;
+
+&lt;!-- Hoặc dùng URL deploy của bạn --&gt;
+&lt;script src="https://your-domain.com/socket.io/socket.io.js"&gt;&lt;/script&gt;
+&lt;script src="https://your-domain.com/chat-widget.js"&gt;&lt;/script&gt;
+  </pre>
+</div>
+
+<!-- Nhúng chat widget -->
+<script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script src="http://localhost:3000/chat-widget.js"></script>
+
+</body>
+</html>
